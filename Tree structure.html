@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Tree Structure</title>
+		<style>
+			.buttonsDiv{
+				margin-bottom: 20px;
+			}
+			ul{
+				padding-left: 0px;
+				list-style-type: none;
+			}
+			.section{
+				margin-left: 20px;
+			}
+			.page .element{
+				margin-left: 20px;
+			}
+			.section .element{
+				margin-left: 40px;
+			}			
+			li.active > span{
+				color: red;
+			}
+			.addButton{
+				border: 2px solid #000;
+				border-radius: 5px;
+				background-color: #0d8bf2;
+				color: #fff;
+				padding: 14px 28px;
+				margin-right: 10px;
+				font-size: 16px;
+				cursor: pointer;
+			}
+			ul{
+				margin:0;
+				padding:0
+			}
+			li{
+				cursor: move;
+				display: block;
+				padding: 15px;
+				background: #fff;
+				outline: 1px dashed #000;
+			}
+			.emptySection{
+				padding: 5px;
+				border-bottom: 0px !important;
+				margin-left: 40px;
+			}
+			.emptyPage{
+				padding: 5px;
+				border-bottom: 0px !important;
+				margin-left: 20px;
+			}
+			.removeButton{
+				border: 2px solid #000;
+				border-radius: 5px;
+				background-color: #ff0000;
+				color: #fff;
+				padding: 14px 28px;
+				margin-right: 10px;
+				font-size: 16px;
+				cursor: pointer;
+			}
+			#remove.disabled{
+				cursor: not-allowed;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="buttonsDiv">
+			<button type="button" id="newPage" class="addButton" data-type="page">Page</button>
+			<button type="button" id="newSection" class="addButton" data-type="section">Section</button>
+			<button type="button" id="newElement" class="addButton" data-type="element">Element</button>
+			<button type="button" id="remove" class="removeButton" data-type="remove">Remove</button>
+		</div>
+		<ul id="treeStructure"></ul>
+	</body>
+</html>
+<script>
+	var treeElements = [];
+	
+	function createTree(treeElements, selectedElement){
+		document.getElementById("treeStructure").innerHTML = "";
+		var tree = []; 
+		var mappedArray = {};
+		var arrayElem;
+		var mappedElem;
+		for(var i = 0; i < treeElements.length; i++){
+			arrayElem = treeElements[i];
+			mappedArray[arrayElem.id] = arrayElem;
+			mappedArray[arrayElem.id]["children"] = [];
+		}
+		for(var id in mappedArray){
+			if(mappedArray.hasOwnProperty(id)){
+				mappedElem = mappedArray[id];
+				if(mappedElem.parentid){
+					mappedArray[mappedElem["parentid"]]["children"].push(mappedElem);
+					mappedArray[mappedElem["parentid"]]["children"].sort((x, y) => parseFloat(x.orderid) - parseFloat(y.orderid));
+				}
+				else{
+					tree.push(mappedElem);
+					tree.sort((x, y) => parseFloat(x.orderid) - parseFloat(y.orderid));
+				}
+			}
+		}
+		createHtml(tree, selectedElement);
+		return tree;
+	}
+	
+	function createHtml(tree, selectedElement){
+		tree.forEach(function(item, index){
+			createElement(item, selectedElement);
+			if(item.children.length > 0){
+				item.children.forEach(function(el, ind){
+					if(el.type == "section"){
+						createElement(el, selectedElement);
+						if(el.children.length > 0){
+							el.children.forEach(function(e, i){
+								createElement(e, selectedElement);
+							});
+						}
+					} else {
+						createElement(el, selectedElement);
+					}
+				});
+			}
+		});
+	}
+	
+	function createElement(treeElement, selectedElement){
+		var child = document.createElement("li");
+		var dependingUl;
+		if(treeElement.type == "page" || treeElement.type == "section"){
+			dependingUl = document.createElement("ul");
+			dependingUl.setAttribute("id", "ul_" + treeElement.id);
+			dependingUl.setAttribute("data-type", treeElement.type);
+		}
+		child.setAttribute("id", "element_" + treeElement.id);
+		child.setAttribute("data-fieldid", + treeElement.id);
+		child.setAttribute("orderid", treeElement.orderid);
+		child.setAttribute("draggable", true);
+		child.classList.add("bfForm", treeElement.type);
+		if(selectedElement === "element_" + treeElement.id){
+			child.classList.add("active");
+		}
+		if(treeElement.type == "page"){
+			document.getElementById("treeStructure").appendChild(child);
+		} else {
+			document.getElementById("ul_" + treeElement.parentid).appendChild(child);
+		}
+		document.getElementById("element_" + treeElement.id).innerHTML = "<span>" + treeElement.type.toUpperCase() + " - " + treeElement.id  + "</span>";
+		if(treeElement.type == "page" || treeElement.type == "section"){
+			document.getElementById("element_" + treeElement.id).appendChild(dependingUl);
+			if(treeElement.children.length < 1){
+				var dependingLi = document.createElement("li");
+				if(treeElement.type == "section"){
+					dependingLi.classList.add("emptySection");
+				} else {
+					dependingLi.classList.add("emptyPage");
+				}
+				document.getElementById("ul_" + treeElement.id).appendChild(dependingLi);
+			}
+		}
+	}
+	
+	var tree = createTree(treeElements, "");
+	
+	document.getElementById("newPage").addEventListener("click", function(){
+		var id = 1;
+		if(treeElements.length > 0) id = Number(treeElements.length) + 1;
+		var pages = Number(treeElements.filter(treeElement => treeElement.parentid == 0).length);
+		treeElements.push({"id" : id, "parentid" : 0, "type" : this.getAttribute("data-type"), "orderid" : pages});
+		createTree(treeElements, "element_" + id);
+	});
+	
+	document.getElementById("newSection").addEventListener("click", function(){
+		if(treeElements.length > 0){
+			var id = Number(treeElements.length) + 1;
+			var selectedElement = document.querySelector(".active");
+			if(selectedElement && selectedElement.classList.contains("page")){
+				var parentId = selectedElement.getAttribute("data-fieldid");
+				var pages = Number(treeElements.filter(treeElement => treeElement.parentid == parentId).length);
+				treeElements.push({"id" : id, "parentid" : parentId, "type" : this.getAttribute("data-type"), "orderid" : pages});
+				createTree(treeElements, selectedElement.getAttribute("id"));
+			}
+		}
+	});
+	
+	document.getElementById("newElement").addEventListener("click", function(){
+		if(treeElements.length > 0){
+			var id = Number(treeElements.length) + 1;
+			var selectedElement = document.querySelector(".active");
+			if(selectedElement && (selectedElement.classList.contains("page") || selectedElement.classList.contains("section"))){
+				var parentId = selectedElement.getAttribute("data-fieldid");
+				var pages = Number(treeElements.filter(treeElement => treeElement.parentid == parentId).length);
+				treeElements.push({"id" : id, "parentid" : parentId, "type" : this.getAttribute("data-type"), "orderid" : pages});
+				createTree(treeElements, selectedElement.getAttribute("id"));
+			}
+		}
+	});
+	
+	document.getElementById("remove").addEventListener("click", function(){
+		var selectedElement = document.querySelector(".active");
+		var shouldRemove = false;
+		if(selectedElement){
+			if(selectedElement.children.length == 1){
+				shouldRemove = true;
+			}
+			else if(selectedElement.children.length > 1){
+				if(selectedElement.children[1].querySelector("ul > li").classList.contains("emptyPage") || selectedElement.children[1].querySelector("ul > li").classList.contains("emptySection")){
+					shouldRemove = true;
+				}
+			}
+			if(shouldRemove == true){
+				var Id = Number(selectedElement.getAttribute("data-fieldid"));
+				var index = treeElements.map(x => x.id).indexOf(Id);
+				treeElements.splice(index, 1);
+				createTree(treeElements, "");
+			}
+		}
+	});
+	
+	document.getElementById("remove").addEventListener("mouseover", function(event){
+		var selectedElement = document.querySelector(".active");
+		if(selectedElement){
+			if(selectedElement.children.length == 1){
+				document.getElementById("remove").classList.remove("disabled");
+			}
+			else if(selectedElement.children.length > 1){
+				if(selectedElement.children[1].querySelector("ul > li").classList.contains("emptyPage") || selectedElement.children[1].querySelector("ul > li").classList.contains("emptySection")){
+					document.getElementById("remove").classList.remove("disabled");
+				} else {
+					document.getElementById("remove").classList.add("disabled");
+				}
+			}
+			else {
+				document.getElementById("remove").classList.add("disabled");
+			}
+		} else {
+			document.getElementById("remove").classList.add("disabled");
+		}
+	});
+	
+	document.addEventListener("click", function(event){
+		if(event.target && event.target.matches(".bfForm > span")){
+			var selectedElement = document.querySelector(".active");
+			if(selectedElement){
+				selectedElement.classList.remove("active");
+			}
+			event.target.parentNode.classList.add("active");
+		}
+	});
+	
+	var dragging = null;
+
+	document.addEventListener("dragstart", function(event){
+		dragging = getTarget(event.target);
+		event.dataTransfer.setData('id', event.target.getAttribute("data-fieldid"));
+		var elementClass = "";
+		if(event.target.classList.contains("page")) elementClass = "page";
+		if(event.target.classList.contains("section")) elementClass = "section";
+		event.dataTransfer.setData("class", elementClass);
+	});
+
+	document.addEventListener("dragover", function(event){
+		event.preventDefault();
+		var target = getTarget(event.target);
+		var bounding = target.getBoundingClientRect();
+		var offset = bounding.y + (bounding.height/2);
+		var difference = event.clientY - offset;
+		if(difference > 0){
+			target.style["border-bottom"] = "3px solid blue";
+			target.style["border-top"] = "";
+		} else {
+			target.style["border-top"] = "3px solid blue";
+			target.style["border-bottom"] = "";
+		}
+	});
+
+	document.addEventListener("dragleave", function(event){
+		var target = getTarget(event.target);
+		target.style["border-bottom"] = "";
+		target.style["border-top"] = "";
+	});
+
+	document.addEventListener("drop", function(event){
+		event.preventDefault();
+		var draggedElement = event.dataTransfer.getData("id");
+		var draggedElementClass = event.dataTransfer.getData("class");
+		var target = getTarget(event.target);
+		if(((draggedElementClass != "page" || !target.classList.contains("emptyPage")) && (draggedElementClass != "page" || target.parentNode.getAttribute("data-type") != "page")) && ((draggedElementClass != "page" || !target.classList.contains("emptySection")) && (draggedElementClass != "page" || target.parentNode.getAttribute("data-type") != "section")) && ((draggedElementClass != "section" || !target.classList.contains("emptySection")) && (draggedElementClass != "section" || target.parentNode.getAttribute("data-type") != "section"))){
+			var parentUl = Number(target.parentNode.id.split("_")[1]) || 0;
+			if(parentUl == 0){
+				if(target.classList.contains("page") && draggedElementClass != "page"){
+					parentUl = Number(target.getAttribute("data-fieldid"));
+				}
+			}
+			if(target.style["border-bottom"] !== ""){
+				target.style["border-bottom"] = "";
+				target.parentNode.insertBefore(dragging, event.target.nextSibling);
+			} else {
+				try{
+					target.style["border-top"] = "";
+					target.parentNode.insertBefore(dragging, event.target);
+				} catch(error) {}
+			}
+			treeElements.filter(treeElement => treeElement.id == draggedElement).map(treeElement => treeElement.parentid = parentUl);
+			var ul;
+			if(parentUl == 0){
+				ul = document.getElementById("treeStructure");
+			} else {
+				ul = document.getElementById("ul_" + parentUl);
+			}
+			treeElements.filter(treeElement => treeElement.parentid == parentUl).map(treeElement => {
+				var el = document.getElementById("element_" + treeElement.id);
+				var orderId = ([...el.parentElement.children].indexOf(el));
+				treeElement.orderid = orderId;
+			});
+			createTree(treeElements, "element_" + draggedElement);
+		} else {
+			target.style["border-top"] = "";
+			target.style["border-bottom"] = "";
+		}
+	});
+
+	function getTarget(target){
+		while(target.nodeName.toLowerCase() != "li" && target.nodeName.toLowerCase() != "body"){
+			target = target.parentNode;
+		}
+		if(target.nodeName.toLowerCase() == "body'"){
+			return false;
+		} else {
+			return target;
+		}
+	}
+</script>
