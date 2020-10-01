@@ -166,8 +166,7 @@
 	var tree = createTree(treeElements, "");
 	
 	document.getElementById("newPage").addEventListener("click", function(){
-		var id = 1;
-		if(treeElements.length > 0) id = Number(treeElements.length) + 1;
+		var id = Math.floor(Math.random() * 1000);  
 		var pages = Number(treeElements.filter(treeElement => treeElement.parentid == 0).length);
 		treeElements.push({"id" : id, "parentid" : 0, "type" : this.getAttribute("data-type"), "orderid" : pages});
 		createTree(treeElements, "element_" + id);
@@ -175,12 +174,12 @@
 	
 	document.getElementById("newSection").addEventListener("click", function(){
 		if(treeElements.length > 0){
-			var id = Number(treeElements.length) + 1;
+			var id = Math.floor(Math.random() * 1000);
 			var selectedElement = document.querySelector(".active");
 			if(selectedElement && selectedElement.classList.contains("page")){
 				var parentId = selectedElement.getAttribute("data-fieldid");
 				var pages = Number(treeElements.filter(treeElement => treeElement.parentid == parentId).length);
-				treeElements.push({"id" : id, "parentid" : parentId, "type" : this.getAttribute("data-type"), "orderid" : pages});
+				treeElements.push({"id" : id, "parentid" : Number(parentId), "type" : this.getAttribute("data-type"), "orderid" : pages});
 				createTree(treeElements, selectedElement.getAttribute("id"));
 			}
 		}
@@ -188,12 +187,12 @@
 	
 	document.getElementById("newElement").addEventListener("click", function(){
 		if(treeElements.length > 0){
-			var id = Number(treeElements.length) + 1;
+			var id = Math.floor(Math.random() * 1000);  
 			var selectedElement = document.querySelector(".active");
 			if(selectedElement && (selectedElement.classList.contains("page") || selectedElement.classList.contains("section"))){
 				var parentId = selectedElement.getAttribute("data-fieldid");
 				var pages = Number(treeElements.filter(treeElement => treeElement.parentid == parentId).length);
-				treeElements.push({"id" : id, "parentid" : parentId, "type" : this.getAttribute("data-type"), "orderid" : pages});
+				treeElements.push({"id" : id, "parentid" : Number(parentId), "type" : this.getAttribute("data-type"), "orderid" : pages});
 				createTree(treeElements, selectedElement.getAttribute("id"));
 			}
 		}
@@ -212,8 +211,8 @@
 				}
 			}
 			if(shouldRemove == true){
-				var Id = Number(selectedElement.getAttribute("data-fieldid"));
-				var index = treeElements.map(x => x.id).indexOf(Id);
+				var selectedId = Number(selectedElement.getAttribute("data-fieldid"));
+				var index = treeElements.map(treeElement => treeElement.id).indexOf(selectedId);
 				treeElements.splice(index, 1);
 				createTree(treeElements, "");
 			}
